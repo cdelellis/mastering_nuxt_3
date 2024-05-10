@@ -27,7 +27,8 @@
     <p>{{ lesson.text }}</p>
     <LessonCompleteButton
       :model-value="isLessonComplete"
-      @update:model-value="toggleComplete"
+      @update:model-value="throw createError('Could not update');
+      "
     />
   </div>
 </template>
@@ -38,17 +39,51 @@ import LessonCompleteButton from '../../../../../components/LessonCompleteButton
 const course = useCourse();
 const route = useRoute();
 
+definePageMeta({
+  addRouteMiddleware ( { params },from) {
+    const course = useCourse();
+    console.log(params);
+
+    const chapter = course.chapters.find(
+      (chapter) => chapter.slug === params.chapterSlug
+    );
+
+    if(!chapter) {
+      return abortNavigation( 
+        createError({
+          statusCode: 404,
+          message: 'Chapter Not Found',
+        })
+      );
+    }
+
+    const lesson = chapter.lessons.find(
+      (lesson) => lesson.slug === params.lessonSlug
+    );
+
+    if(!lesson) {
+      return abortNavigation(
+        createError({
+        statusCode: 404,
+        message: 'Lesson Not Found',
+        })
+      );
+    }
+
+    },
+});
+
 const chapter = computed(() => {
   return course.chapters.find(
-    (chapter) => chapter.slug === route.params.chapterSlug
+    (chapter) => chapter.slug === params.chapterSlug
   );
 });
 
 const lesson = computed(() => {
-  return chapter.value.lessons.find(
-    (lesson) => lesson.slug === route.params.lessonSlug
+  return chapter.lessons.find(
+    (lesson) => lesson.slug === params.lessonSlug
   );
-});
+})
 
 const title = computed(() => {
   return `${lesson.value.title} - ${course.title}`;
